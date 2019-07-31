@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -18,8 +19,20 @@ namespace RedisServer {
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services) {
+            services
+                .AddMvc()
+                .SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
+
             services.AddDistributedRedisCache(options => {
                 options.Configuration = Configuration.GetConnectionString("RedisAddress");
+            });
+
+            services.AddSwaggerGen(options => {
+                options.DescribeAllEnumsAsStrings();
+                options.SwaggerDoc(SwaggerConsts.ApiName, new Swashbuckle.AspNetCore.Swagger.Info {
+                    Title = SwaggerConsts.DocTitle,
+                        Version = SwaggerConsts.DocVersion
+                });
             });
         }
 
@@ -29,13 +42,27 @@ namespace RedisServer {
                 app.UseDeveloperExceptionPage();
             }
 
+            var pathBase = Environment.GetEnvironmentVariable("ASPNETCORE_PATHBASE");
+            if (!string.IsNullOrEmpty(pathBase)) {
+                app.UsePathBase(new PathString(pathBase));
+                Console.WriteLine("Hosting PathBase: " + pathBase);
+            }
+
             app.UseRouting();
             app.UseMvcWithDefaultRoute();
-            app.UseEndpoints(endpoints => {
-                endpoints.MapGet("/", async context => {
-                    await context.Response.WriteAsync("Hello World!");
-                });
+            // app.UseEndpoints(endpoints => {
+            //     endpoints.MapGet("/", async context => {
+            //         await context.Response.WriteAsync("Hello World!");
+            //     });
+            // });
+            #region 
+            app.UseSwagger(options => {
+                options.PreSerializeFilters.Add((swaggerDoc, httpRequest) => swaggerDoc.BasePath = pathBase);
             });
+            app.UseSwaggerUI(options => {
+                options.SwaggerEndpoint(pathBase + SwaggerConsts.EndpointUrl, SwaggerConsts.ApiName);
+            });
+            #endregion
         }
     }
 }
