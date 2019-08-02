@@ -21,15 +21,15 @@ namespace RedisServer {
         public void ConfigureServices(IServiceCollection services) {
             services
                 .AddMvc()
+                .AddNewtonsoftJson()
                 .SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
 
             services.AddDistributedRedisCache(options => {
                 options.Configuration = Configuration.GetConnectionString("RedisAddress");
             });
-
             services.AddSwaggerGen(options => {
                 options.DescribeAllEnumsAsStrings();
-                options.SwaggerDoc(SwaggerConsts.ApiName, new Swashbuckle.AspNetCore.Swagger.Info {
+                options.SwaggerDoc(SwaggerConsts.ApiName, new Microsoft.OpenApi.Models.OpenApiInfo {
                     Title = SwaggerConsts.DocTitle,
                         Version = SwaggerConsts.DocVersion
                 });
@@ -49,16 +49,18 @@ namespace RedisServer {
             }
 
             app.UseRouting();
-            app.UseMvcWithDefaultRoute();
-            // app.UseEndpoints(endpoints => {
-            //     endpoints.MapGet("/", async context => {
-            //         await context.Response.WriteAsync("Hello World!");
-            //     });
-            // });
-            #region 
-            app.UseSwagger(options => {
-                options.PreSerializeFilters.Add((swaggerDoc, httpRequest) => swaggerDoc.BasePath = pathBase);
+            app.UseCors();
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapDefaultControllerRoute();
             });
+            //app.UseEndpoints(endpoints => {
+            //    endpoints.MapGet("/", async context => {
+            //        await context.Response.WriteAsync("Hello World!");
+            //    });
+            //});
+            #region 
+            app.UseSwagger();
             app.UseSwaggerUI(options => {
                 options.SwaggerEndpoint(pathBase + SwaggerConsts.EndpointUrl, SwaggerConsts.ApiName);
             });
